@@ -1,0 +1,29 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>交互式股票K线图</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        .chart-container {
+            width: 90%;
+            margin: 2rem auto;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        {{ chart_html|safe }}
+    </div>
+
+    <script>
+        // 自动调整图表大小
+        window.addEventListener('resize', function() {
+            Plotly.Plots.resize(document.getElementById('myDiv'));
+        });
+    </script>
+</body>
+</html>

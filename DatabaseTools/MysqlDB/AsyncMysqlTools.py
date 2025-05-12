@@ -1,5 +1,3 @@
-import asyncio
-
 import aiomysql
 import pandas as pd
 
