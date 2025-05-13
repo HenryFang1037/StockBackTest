@@ -25,7 +25,7 @@ class BaseHistoricalDataDownload():
             return symbol, DownloadError()
         return symbol, result
 
-    async def run(self, symbols: list[str], start_date=None, end_date=None, filter_key=None):
+    async def run(self, symbols: list, start_date=None, end_date=None, filter_key=None):
         async def _download_save(symbols, start_date, end_date, filter_key):
             tasks = []
             retry_symbols = []

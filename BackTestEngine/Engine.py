@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 from tqdm import tqdm
 import os
@@ -7,12 +9,12 @@ from DatabaseTools.MongoDBTools.MongoDBTools import MongoDB
 
 
 class BaseEngine:
-    def __init__(self, algorithm, start_date, end_date, data_type='stock', write_to_local=False):
+    def __init__(self, algorithm, start_date, end_date, data_type='stock', write_json=False):
         self.algorithm = algorithm
         self.start_date = start_date
         self.end_date = end_date
         self.type = data_type
-        self.write = write_to_local
+        self.write_json = write_json
 
     def data(self):
         print(f'{datetime.now()}<-->开始加载数据')
@@ -60,26 +62,30 @@ class BaseEngine:
                 except Exception as exc:
                     print(f'策略运行出错:{exc}')
 
-        if not self.write:
-            print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行完成')
-            return results
+        print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行完成')
+        if self.write_json:
+            self.write_result(results, to_json=True)
         else:
-            self.write_result(results)
+            self.write_result(results, to_json=False)
 
-    def write_result(self, results):
-        print(f'{datetime.now()}<-->开始写入{self.algorithm.__name__}策略运行结果')
+    def write_result(self, results, to_json=False):
+        print(f'{datetime.now()}<-->开始保存{self.algorithm.__name__}策略运行结果')
         pardir = os.path.abspath(os.path.pardir)
         results_dir = os.path.join(pardir, 'Results')
         algo_result_dir = os.path.join(results_dir, self.algorithm.__name__)
         if not os.path.exists(algo_result_dir):
             os.makedirs(algo_result_dir)
-
-        with open(f'{algo_result_dir}/{datetime.now().strftime("%Y-%m-%d")}.txt', 'w') as f:
-            for key, res in results.items():
-                if res is not None:
-                    f.write(res)
-                    f.newlines
-        print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行结果写入完成')
+        if to_json is False:
+            with open(f'{algo_result_dir}/{datetime.now().strftime("%Y-%m-%d")}.txt', 'w') as f:
+                for key, res in results.items():
+                    if res is not None:
+                        f.write(res[-1])
+                        f.newlines
+            print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行结果已保存为txt')
+        else:
+            with open(f'{algo_result_dir}/{datetime.now().strftime("%Y-%m-%d")}.json', 'w') as f:
+                json.dump(results, f)
+            print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行结果已保存为json')
 
 
 if __name__ == '__main__':

@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from RiskManagement.risk_calculation import calc_return
+
 warnings.filterwarnings('ignore')
 
 
@@ -104,13 +106,16 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                         max_decrease = round(close_price / highest_high - 1, 4)
                         buy_day = right_data['日期'].loc[idx]
                         if max_decrease <= least_decrease and dropday >= least_drop_day and turnover <= max_small_turnover and pct > -0.05:
-                            return res.format(stock_name, stock_code, lowest_open_day, highest_high_day, increase_day,
+                            df = data.iloc[lowest_open_idx:]
+                            buy_idx = [idx]
+                            sell_idx = []
+                            return [data.iloc[lowest_open_idx:], calc_return(df, buy_idx, sell_idx), res.format(stock_name, stock_code, lowest_open_day, highest_high_day, increase_day,
                                               max_increase, buy_day, dropday, max_decrease, gap_number,
                                               list(reversed(gap_days)), buy_day,
                                               close_price,
                                               max_small_turnover_multiply,
                                               list(reversed(gap_close_prices))
-                                              )
+                                              )]
                 else:
                     if right_data.shape[0] >= least_rise_day + least_drop_day:
                         return right_data

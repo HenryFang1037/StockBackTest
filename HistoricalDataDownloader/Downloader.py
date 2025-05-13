@@ -19,7 +19,7 @@ async def download_stock_daily_history():
     # 排除下载退市股票数据
     dates = stocks['更新日期'].to_list()
     max_date, min_date = max(dates), min(dates)
-    start_date = datetime.strftime(max_date-timedelta(days=3), '%Y%m%d')
+    start_date = datetime.strftime(max_date-timedelta(days=5), '%Y%m%d')
 
     # max_date != min_date时min_date为退市股最后一天交易日期
     if max_date != min_date:
@@ -44,7 +44,7 @@ async def download_concept_daily_history():
     # 排除下载退市股票数据
     dates = concepts['更新日期'].to_list()
     max_date, min_date = max(dates), min(dates)
-    start_date = datetime.strftime(max_date-timedelta(days=3), '%Y%m%d')
+    start_date = datetime.strftime(max_date-timedelta(days=5), '%Y%m%d')
 
     # max_date != min_date时min_date为退市股最后一天交易日期
     if max_date != min_date:
@@ -70,7 +70,7 @@ async def download_concept_consist_daily_history():
     # 排除下载退市股票数据
     dates = concepts['更新日期'].to_list()
     max_date, min_date = max(dates), min(dates)
-    start_date = datetime.strftime(max_date-timedelta(days=30), '%Y%m%d')
+    start_date = datetime.strftime(max_date-timedelta(days=5), '%Y%m%d')
 
     # max_date != min_date时min_date为退市股最后一天交易日期
     if max_date != min_date:
@@ -98,7 +98,7 @@ async def download_index_daily_history():
 
 
 async def main_downloader():
-    get_all_consistent()
+    # get_all_consistent()
     await download_stock_daily_history()
     await download_concept_daily_history()
     await download_concept_consist_daily_history()
