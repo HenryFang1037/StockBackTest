@@ -1,0 +1,29 @@
+/* 页眉样式 */
+.page-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: #6366f1;
+    /*background: #23272b;*/
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.header-content {
+    max-width: 1200px;
+    margin: 1rem auto;
+    padding: 1rem 2rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+
+.chart-container {
+            width: 90%;
+            margin: 10rem auto;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+        }
