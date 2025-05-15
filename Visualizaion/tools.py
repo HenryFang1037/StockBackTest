@@ -3,7 +3,7 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 
-def create_chart(df: pd.DataFrame, buy_idx: list, sell_idx: list):
+def create_chart(df: pd.DataFrame, buy_days: list, sell_days: list):
     # 创建带子图的画布
     fig = make_subplots(
         rows=2, cols=1,
@@ -43,8 +43,8 @@ def create_chart(df: pd.DataFrame, buy_idx: list, sell_idx: list):
     )
 
     # 添加买卖信号标记（示例）
-    if len(buy_idx) != 0:
-        buy_dates = df.iloc[buy_idx].日期
+    if len(buy_days) != 0:
+        buy_dates = df[df['日期'].isin([buy_days])].日期
         fig.add_trace(
             go.Scatter(
                 x=buy_dates,
@@ -59,8 +59,8 @@ def create_chart(df: pd.DataFrame, buy_idx: list, sell_idx: list):
                 )),
                 row=1, col=1
            )
-    if len(sell_idx) != 0:
-        sell_dates = df.iloc[sell_idx].日期
+    if len(sell_days) != 0:
+        sell_dates = df[df['日期'].isin([sell_days])].日期
         fig.add_trace(
             go.Scatter(
                 x=sell_dates,
@@ -105,10 +105,6 @@ def create_chart(df: pd.DataFrame, buy_idx: list, sell_idx: list):
     fig.update_xaxes(showticklabels=False, row=2, col=1, tickformat='%Y-%m-%d')
 
     return fig.to_html(full_html=False)
-
-
-def calc_retur
-
 
 
 if __name__ == '__main__':

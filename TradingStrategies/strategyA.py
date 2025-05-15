@@ -2,6 +2,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
 from RiskManagement.risk_calculation import calc_return
 
@@ -9,8 +10,8 @@ warnings.filterwarnings('ignore')
 
 
 def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int = 3,
-               max_small_turnover_multiply: float = 0.15, least_increase: float = 0.7,
-               least_decrease: float = -0.5) -> str:
+               max_small_turnover_multiply: float = 0.15, least_increase: float = 0.4,
+               least_decrease: float = -0.2) -> str:
     """
     This function searches for gaps in stock data and provides buying recommendations.
 
@@ -46,14 +47,12 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
     stock_name = data['name'].unique()[0]
     stock_code = data['code'].unique()[0]
 
-    res = """
-        ----------------------------------------------------------------------------------------------------------
-        股票：{}, 代码：{}
-        ----------------------------------------------------------------------------------------------------------
-        1.从{}开盘到{}最高点共{}日，涨幅达到{:.2%}，从最高点到{}日开盘，共{}日，跌幅达到{:.2%}。
-        2.从最高点到昨日共形成{}个缺口，分别是{}。
-        3.在{}日收盘价为{}，交易量缩小到最大交易量换手率的{}倍，建议后续可买入，持有到达到{}价格。
-        """
+    comment = {
+        'info':  '股票：{}, 代码：{}',
+        'first': '1.从{}开盘到{}最高点共{}日，涨幅达到{:.2%}，从最高点到{}日开盘，共{}日，跌幅达到{:.2%}。',
+        'second': '2.从最高点到昨日共形成{}个缺口，分别是{}。',
+        'third': '3.在{}日收盘价为{}，交易量缩小到最大交易量换手率的{}倍，建议后续可买入，持有到达到{}价格。'
+    }
 
     def gap_search(data=data):
         highest_high_idx = data['最高'].idxmax()
@@ -74,17 +73,14 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
         if max_increase >= least_increase and increase_day >= least_rise_day:
             right_data = data.loc[highest_high_idx:]
             right_data['gap'] = right_data['收盘'].shift(1) > right_data['最高']
-
             if np.any(right_data['gap']):
                 indexes = []
-                gap_indexes = right_data[right_data['gap'] == True].index.values
-
+                gap_indexes = right_data[right_data['gap']==True].index.values
                 for gap_index in gap_indexes:
-                    pre_close = right_data['收盘'].loc[gap_index - 1]
+                    pre_close = data['收盘'].loc[gap_index - 1]
                     indicator = pre_close > right_data['最高'].loc[gap_index:]
                     if all(indicator):
                         indexes.append(gap_index)
-
                 gap_number = len(indexes)
                 if gap_number != 0:
                     # i = 1
@@ -95,10 +91,10 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                     latest_gap_index = indexes[-1]
                     gap_days = [str(date) for date in right_data['日期'].loc[indexes]]
                     gap_previous_days_idxes = [idx -1 for idx in indexes]
-                    gap_close_prices = list(right_data['收盘'].loc[gap_previous_days_idxes])
+                    gap_close_prices = list(data['收盘'].loc[gap_previous_days_idxes])
 
                     for i, idx in enumerate(range(latest_gap_index + 1, right_data.index.stop), 1):
-                        turnover = right_data['换手率'].loc[idx - 1:idx + 2].mean()
+                        turnover = data['换手率'].loc[idx - 1:idx + 2].mean()
                         dropday = idx - highest_high_idx
                         close_price = right_data['收盘'].loc[idx]
                         pre_close_price = right_data['收盘'].loc[idx - 1]
@@ -106,21 +102,29 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                         max_decrease = round(close_price / highest_high - 1, 4)
                         buy_day = right_data['日期'].loc[idx]
                         if max_decrease <= least_decrease and dropday >= least_drop_day and turnover <= max_small_turnover and pct > -0.05:
-                            df = data.iloc[lowest_open_idx:]
                             buy_idx = [idx]
                             sell_idx = []
-                            return [data.iloc[lowest_open_idx:], calc_return(df, buy_idx, sell_idx), res.format(stock_name, stock_code, lowest_open_day, highest_high_day, increase_day,
-                                              max_increase, buy_day, dropday, max_decrease, gap_number,
-                                              list(reversed(gap_days)), buy_day,
-                                              close_price,
-                                              max_small_turnover_multiply,
-                                              list(reversed(gap_close_prices))
-                                              )]
+                            comment['info'] = comment['info'].format(stock_name, stock_code)
+                            comment['first'] = comment['first'].format(lowest_open_day, highest_high_day, increase_day,
+                                              max_increase, buy_day, dropday, max_decrease)
+                            comment['second'] = comment['second'].format(gap_number, list(reversed(gap_days)))
+                            comment['third'] = comment['third'].format(buy_day, close_price, max_small_turnover_multiply, list(reversed(gap_close_prices)))
+
+                            return_ = calc_return(data, buy_idx, sell_idx)
+
+                            return {
+                                'stock_code': stock_code,
+                                'start_date': lowest_open_day,
+                                'end_date': None,
+                                'buy_dates': [buy_day],
+                                'sell_dates': [],
+                                'return': return_,
+                                'comment': comment,
+                                'test_date': datetime.now().strftime('%Y-%m-%d')
+                            }
                 else:
                     if right_data.shape[0] >= least_rise_day + least_drop_day:
                         return right_data
-                    else:
-                        return None
 
     while isinstance(data, pd.DataFrame):
         data = gap_search(data)
@@ -129,23 +133,14 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
 
 
 if __name__ == '__main__':
-    # from tqdm import tqdm
-    # results = {}
-    #
-    # from DatabaseTools.MongoDBTools.MongoDBTools import MongoDB
-    # stocks = MongoDB(database_name='沪深A股成分组成').find(table_name='沪深A股票信息')
-    # stocks = stocks[['证券代码', '证券简称']]
-    # for i, row in tqdm(stocks.iterrows()):
-    #     name, code = row['证券简称'], row['证券代码']
-    #     df = MongoDB('沪深A股日度数据').find(code, start_date='20240501', end_date='20250506')
-    #     res = gap_finder(name, code, data=df)
-    #     results[name] = res
-    #
-    # with open('result.txt', 'a') as f:
-    #     for k, val in results.items():
-    #         if val is not None:
-    #             f.write(val)
-    #             f.newlines
-    a = gap_finder
-    print(a.__name__)
+    from tqdm import tqdm
+    results = {}
+
+    from DatabaseTools.MongoDBTools.MongoDBTools import MongoDB
+    df = MongoDB('沪深A股日度数据').find('600180', start_date='2024-11-01', end_date='2025-05-06')
+    df['name'] = '600180'
+    df['code'] = '600180'
+    res = gap_finder(data=df)
+    print(res)
+
 

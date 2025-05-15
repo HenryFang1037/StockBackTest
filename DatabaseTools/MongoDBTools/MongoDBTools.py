@@ -24,12 +24,15 @@ class MongoDB():
             result = pd.DataFrame(result)
         return result
 
-    def show_tables(self):
-        print(self._db.show_tables())
+    def get_test_result(self, table_name, test_date=None):
+        if test_date is not None:
+            results = self._db[table_name].find({'test_date': test_date}, {'_id': 0})
+        else:
+            results = self._db[table_name].find({}, {'_id': 0})
+        return results
 
-    # def close(self):
-    #     # self._db.close()
-    #     self._client.close()
+    def show_collections(self):
+        return self._db.list_collection_names()
 
     def drop_collection(self, table_name):
-        self._db[table_name].drop()
+        return self._db.drop(table_name)

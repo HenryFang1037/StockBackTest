@@ -98,7 +98,7 @@ async def download_index_daily_history():
 
 
 async def main_downloader():
-    # get_all_consistent()
+    get_all_consistent()
     await download_stock_daily_history()
     await download_concept_daily_history()
     await download_concept_consist_daily_history()

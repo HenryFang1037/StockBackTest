@@ -4,6 +4,7 @@
 # Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
 
 import akshare as ak
+from HistoricalDataDownloader.Downloader import main_downloader
 
 
 def print_hi(name):

@@ -9,12 +9,12 @@ from DatabaseTools.MongoDBTools.MongoDBTools import MongoDB
 
 
 class BaseEngine:
-    def __init__(self, algorithm, start_date, end_date, data_type='stock', write_json=False):
+    def __init__(self, algorithm, start_date, end_date, data_type='stock', write_local=False):
         self.algorithm = algorithm
         self.start_date = start_date
         self.end_date = end_date
         self.type = data_type
-        self.write_json = write_json
+        self.write_local = write_local
 
     def data(self):
         print(f'{datetime.now()}<-->开始加载数据')
@@ -60,37 +60,38 @@ class BaseEngine:
                     result = future.result()
                     results[symbol] = result
                 except Exception as exc:
-                    print(f'策略运行出错:{exc}')
+                    print(f'策略运行出错:{symbol}, {exc}')
 
         print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行完成')
-        if self.write_json:
-            self.write_result(results, to_json=True)
-        else:
-            self.write_result(results, to_json=False)
 
-    def write_result(self, results, to_json=False):
+        self.write_result(results)
+
+    def write_result(self, results):
         print(f'{datetime.now()}<-->开始保存{self.algorithm.__name__}策略运行结果')
         pardir = os.path.abspath(os.path.pardir)
         results_dir = os.path.join(pardir, 'Results')
         algo_result_dir = os.path.join(results_dir, self.algorithm.__name__)
         if not os.path.exists(algo_result_dir):
             os.makedirs(algo_result_dir)
-        if to_json is False:
+        if self.write_local is True:
             with open(f'{algo_result_dir}/{datetime.now().strftime("%Y-%m-%d")}.txt', 'w') as f:
                 for key, res in results.items():
                     if res is not None:
-                        f.write(res[-1])
+                        f.write(res['comment'])
                         f.newlines
             print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行结果已保存为txt')
         else:
-            with open(f'{algo_result_dir}/{datetime.now().strftime("%Y-%m-%d")}.json', 'w') as f:
-                json.dump(results, f)
+            mongo = MongoDB('BackTestResults')
+            table_name = self.algorithm.__name__
+            for key, res in results.items():
+                if res is not None:
+                    mongo.update_insert(table_name, [res])
             print(f'{datetime.now()}<-->{self.algorithm.__name__}策略运行结果已保存为json')
 
 
 if __name__ == '__main__':
     from TradingStrategies.strategyA import gap_finder
-    strategy_a = BaseEngine(algorithm=gap_finder, start_date='20241101', end_date='20250506', write_to_local=True)
+    strategy_a = BaseEngine(algorithm=gap_finder, start_date='2024-11-01', end_date='2025-05-14', write_local=False)
     strategy_a.run()
 
 
