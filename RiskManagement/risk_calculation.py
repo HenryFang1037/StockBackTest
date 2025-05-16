@@ -1,71 +1,137 @@
-from datetime import datetime
-import itertools
 import pandas as pd
 import numpy as np
 
 
-def calc_return(df: pd.DataFrame, buy_idx: list, sell_idx: list):
-    result = {
-        'MaxReturn': 0,
-        'MinReturn': 0,
-        'HoldReturn': 0,
-        'HoldDays': 0,
-    }
-    last_index = df.last_valid_index
-    sto_index = df.index.stop
+def calc_return(df: pd.DataFrame, buy_day: str, sell_day: str):
+    """
+    持仓收益波动
+    :param df:
+    :param buy_day:
+    :param sell_day:
+    :return:
+    """
+    series = pd.Series()
+    buy_id = df[df['日期']==buy_day].index.to_list()[0]
+    sell_id = df[df['日期']==sell_day].index.to_list()[0]
+    if buy_id < sell_id < df.index.stop:
+        buy_price = df.loc[buy_id].收盘
+        series = df.loc[buy_id + 1:]['收盘'] / buy_price - 1
+    return series
 
-    def calc_once(data, b_id):
-        b_day = data.loc[b_id].日期
-        b_price = data.loc[b_id].收盘
-        if b_id < data.index.stop - 1:
-            return_list = (data.loc[b_id + 1:]['收盘'] - b_price) * np.floor(100000 / b_price)
-            max_return = round(return_list.max(), 2)
-            min_return = round(return_list.min(), 2)
-            hold_return = round(return_list.iloc[-1], 2)
-            h_days = datetime.strptime(data.iloc[-1].日期, '%Y-%m-%d') - datetime.strptime(b_day, '%Y-%m-%d')
-            return {
-                'MaxReturn': max_return,
-                'MinReturn': min_return,
-                'HoldReturn': hold_return,
-                'HoldDays': h_days.days
-            }
-        else:
-            return result
 
-    if len(buy_idx) == 0:
-        return result
-    if len(sell_idx) == 0:
-        if len(buy_idx) > 1:
-            return result
-        else:
-            return calc_once(df, buy_idx[0])
+def annualized_ret(data: pd.Series):
+    """
+    年化收益率
+    :param data:
+    :return:
+    """
+    days = data.shape[0]
+    return np.power(data.iloc[-1], 250 / days)
 
-    returns = []
-    hold_days = []
-    for buy_id, sell_id in itertools.zip_longest(buy_idx, sell_idx, fillvalue=None):
-        if buy_id is not None and sell_id is not None and buy_id < sell_id < df.index.stop - 1:
-            buy_day = df.loc[buy_id].日期
-            sell_day = df.loc[sell_id].日期
-            days = datetime.strptime(sell_day, '%Y-%m-%d') - datetime.strptime(buy_day, '%Y-%m-%d')
-            hold_days.append(days.days)
-            buy_price = df.loc[buy_id].收盘
-            sell_price = df.loc[sell_id].收盘
-            ret = (sell_price - buy_price) * np.floor(100000 / buy_price)
-            returns.append(ret)
-        elif buy_id is not None and sell_id is None and buy_id < df.index.stop - 1:
-            result = calc_once(df, buy_id)
-            result['MaxReturn'] = max(result['MaxReturn'], max(returns)) if len(returns) != 0 else result['MaxReturn']
-            result['MinReturn'] = min(result['MinReturn'], min(returns)) if len(returns) != 0 else result['MinReturn']
-            result['HoldDays'] = result['HoldDays'] + sum(hold_days) if len(hold_days) != 0 else result['HoldDays']
-            result['HoldReturn'] = result['HoldReturn'] + sum(returns) if len(returns) != 0 else result['HoldReturn']
-            return result
-        else:
-            return {
-                    'MaxReturn': max(returns) if len(returns) != 0 else 0,
-                    'MinReturn': min(returns) if len(returns) != 0 else 0,
-                    'HoldReturn': sum(returns) if len(returns) != 0 else 0,
-                    'HoldDays': sum(hold_days) if len(returns) != 0 else 0
-                }
+
+def volatility(data: pd.Series):
+    """
+    收益波动率
+    :param data:
+    :return:
+    """
+    return data.std()
+
+
+def downside_volatility(data: pd.Series):
+    """
+    下行收益波动率
+    :param data:
+    :return:
+    """
+    ret = data[data < 0]
+    return ret.std()
+
+
+def max_dropdown(data: pd.Series):
+    """
+    最大回撤
+    :param data:
+    :return:
+    """
+    data = data + 1
+    max_id = data.idxmax()
+    max_return= data.loc[max_id]
+    min_return = data.loc[max_id:].min()
+    return min_return / max_return - 1
+
+
+def system_risk(ret: pd.Series, base_line_ret: pd.Series):
+    """
+    系统性风险（收益）
+    :param ret:
+    :param base_line_ret:
+    :return:
+    """
+    covariance = np.cov(ret, base_line_ret)
+    beta = covariance / (ret.std() * base_line_ret.std())
+    return beta
+
+
+def none_system_risk(beta: float, ret: pd.Series, base_line_ret: pd.Series, national_bond_ret: float):
+    """
+    非系统性风险（收益）
+    :param beta:
+    :param ret:
+    :param base_line_ret:
+    :param national_bond_ret:
+    :return:
+    """
+    ret = annualized_ret(ret)
+    base_line_ret = annualized_ret(base_line_ret)
+    alpha = ret - national_bond_ret - beta * (base_line_ret - national_bond_ret)
+    return alpha
+
+
+def sharp_ratio(ret: pd.Series, national_bond_ret: float):
+    """
+    夏普比率
+    :param ret:
+    :param national_bond_ret:
+    :return:
+    """
+    ret = annualized_ret(ret)
+    var = volatility(ret)
+    ratio = (ret - national_bond_ret) / var
+    return ratio
+
+
+def sortino_ratio(ret: pd.Series, national_bond_ret: float):
+    """
+    索提诺比率
+    :param ret:
+    :param national_bond_ret:
+    :return:
+    """
+    ret = annualized_ret(ret)
+    downside_vol = downside_volatility(ret)
+    ratio = (ret - national_bond_ret) / downside_vol
+    return ratio
+
+
+def calc_all(stock_code: str, buy_day: str, sell_day: str, base_line_code='sh000001', national_bond_code="中债国债收益率曲线"):
+    pass
+
+
+if __name__ == '__main__':
+    import akshare as ak
+
+    bond_china_yield_df = ak.bond_china_yield(start_date="20250201", end_date="20250501")
+    print(bond_china_yield_df)
+
+
+
+
+
+
+
+
+
 
 
 

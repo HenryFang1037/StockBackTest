@@ -29,7 +29,7 @@ class MongoDB():
             results = self._db[table_name].find({'test_date': test_date}, {'_id': 0})
         else:
             results = self._db[table_name].find({}, {'_id': 0})
-        return results
+        return pd.DataFrame(results)
 
     def show_collections(self):
         return self._db.list_collection_names()

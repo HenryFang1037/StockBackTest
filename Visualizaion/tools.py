@@ -44,7 +44,7 @@ def create_chart(df: pd.DataFrame, buy_days: list, sell_days: list):
 
     # 添加买卖信号标记（示例）
     if len(buy_days) != 0:
-        buy_dates = df[df['日期'].isin([buy_days])].日期
+        buy_dates = df[df['日期'].isin(buy_days)].日期
         fig.add_trace(
             go.Scatter(
                 x=buy_dates,
@@ -60,7 +60,7 @@ def create_chart(df: pd.DataFrame, buy_days: list, sell_days: list):
                 row=1, col=1
            )
     if len(sell_days) != 0:
-        sell_dates = df[df['日期'].isin([sell_days])].日期
+        sell_dates = df[df['日期'].isin(sell_days)].日期
         fig.add_trace(
             go.Scatter(
                 x=sell_dates,

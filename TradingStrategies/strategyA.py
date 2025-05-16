@@ -83,11 +83,6 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                         indexes.append(gap_index)
                 gap_number = len(indexes)
                 if gap_number != 0:
-                    # i = 1
-                    # latest_gap_index = indexes[-i]
-                    # while latest_gap_index + 3 > right_data.index.stop:
-                    #     i += 1
-                    #     latest_gap_index = indexes[-i]
                     latest_gap_index = indexes[-1]
                     gap_days = [str(date) for date in right_data['日期'].loc[indexes]]
                     gap_previous_days_idxes = [idx -1 for idx in indexes]
@@ -103,7 +98,8 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                         buy_day = right_data['日期'].loc[idx]
                         if max_decrease <= least_decrease and dropday >= least_drop_day and turnover <= max_small_turnover and pct > -0.05:
                             buy_idx = [idx]
-                            sell_idx = []
+                            sell_idx = [right_data.index.stop-1]
+                            sell_day = right_data['日期'].iloc[right_data.index.stop-1]
                             comment['info'] = comment['info'].format(stock_name, stock_code)
                             comment['first'] = comment['first'].format(lowest_open_day, highest_high_day, increase_day,
                                               max_increase, buy_day, dropday, max_decrease)
@@ -117,7 +113,7 @@ def gap_finder(data: pd.DataFrame, least_rise_day: int = 5, least_drop_day: int 
                                 'start_date': lowest_open_day,
                                 'end_date': None,
                                 'buy_dates': [buy_day],
-                                'sell_dates': [],
+                                'sell_dates': [sell_day],
                                 'return': return_,
                                 'comment': comment,
                                 'test_date': datetime.now().strftime('%Y-%m-%d')
