@@ -1,4 +1,5 @@
 import aiohttp
+import asyncio
 import pandas as pd
 from HistoricalDataDownloader.Semaphore import semaphore
 
@@ -9,7 +10,7 @@ async def get_stock_daily_history(
         end_date: str = "20500101",
         period: str = "daily",
         adjust: str = "hfq",
-        timeout: float = 15.,
+        timeout: float = 35.,
 ) -> (str, pd.DataFrame):
     """
     东方财富网-行情首页-沪深京 A 股-每日行情
@@ -44,7 +45,7 @@ async def get_stock_daily_history(
         "end": end_date,
         "_": "1623766962675",
     }
-    async with semaphore:
+    async with asyncio.Semaphore(30):
         async with aiohttp.ClientSession() as session:
             r = await session.get(url, params=params, timeout=timeout)
             data_json = await r.json()
@@ -91,6 +92,7 @@ async def get_stock_daily_history(
                     "换手率",
                 ]
             ]
+            print(symbol)
             return symbol, temp_df
 
 
@@ -127,38 +129,44 @@ async def get_stock_minute_history(
         "secid": f"1.{symbol}" if symbol.startswith("6") else f"0.{symbol}",
         "_": "1623766962675",
     }
-    async with semaphore:
-        async with aiohttp.ClientSession() as session:
-            r = await session.get(url, params=params)
-            data_json = await r.json()
-            temp_df = pd.DataFrame(
-                [item.split(",") for item in data_json["data"]["trends"]]
-            )
-            temp_df.columns = [
-                "时间",
-                "开盘",
-                "收盘",
-                "最高",
-                "最低",
-                "成交量",
-                "成交额",
-                "均价",
-            ]
-            temp_df.index = pd.to_datetime(temp_df["时间"])
-            temp_df = temp_df[start_date:end_date]
-            temp_df.reset_index(drop=True, inplace=True)
-            temp_df["开盘"] = pd.to_numeric(temp_df["开盘"], errors="coerce")
-            temp_df["收盘"] = pd.to_numeric(temp_df["收盘"], errors="coerce")
-            temp_df["最高"] = pd.to_numeric(temp_df["最高"], errors="coerce")
-            temp_df["最低"] = pd.to_numeric(temp_df["最低"], errors="coerce")
-            temp_df["成交量"] = pd.to_numeric(temp_df["成交量"], errors="coerce")
-            temp_df["成交额"] = pd.to_numeric(temp_df["成交额"], errors="coerce")
-            temp_df["均价"] = pd.to_numeric(temp_df["均价"], errors="coerce")
-            temp_df["时间"] = pd.to_datetime(temp_df["时间"]).astype(str)
-            return symbol, temp_df
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36'
+    }
+    # async with asyncio.Semaphore(30):
+    async with aiohttp.ClientSession() as session:
+        r = await session.get(url, params=params)
+        data_json = await r.json()
+        temp_df = pd.DataFrame(
+            [item.split(",") for item in data_json["data"]["trends"]]
+        )
+        temp_df.columns = [
+            "时间",
+            "开盘",
+            "收盘",
+            "最高",
+            "最低",
+            "成交量",
+            "成交额",
+            "均价",
+        ]
+        temp_df.index = pd.to_datetime(temp_df["时间"])
+        temp_df = temp_df[start_date:end_date]
+        temp_df.reset_index(drop=True, inplace=True)
+        temp_df["开盘"] = pd.to_numeric(temp_df["开盘"], errors="coerce")
+        temp_df["收盘"] = pd.to_numeric(temp_df["收盘"], errors="coerce")
+        temp_df["最高"] = pd.to_numeric(temp_df["最高"], errors="coerce")
+        temp_df["最低"] = pd.to_numeric(temp_df["最低"], errors="coerce")
+        temp_df["成交量"] = pd.to_numeric(temp_df["成交量"], errors="coerce")
+        temp_df["成交额"] = pd.to_numeric(temp_df["成交额"], errors="coerce")
+        temp_df["均价"] = pd.to_numeric(temp_df["均价"], errors="coerce")
+        temp_df["时间"] = pd.to_datetime(temp_df["时间"]).astype(str)
+        print(temp_df)
+        return symbol, temp_df
 
 
 if __name__ == "__main__":
     import asyncio
-
+    # import akshare as ak
+    # res = ak.stock_zh_a_hist(symbol="sz000001", start_date="19910403", end_date="20231027", adjust="qfq")
+    # print(res)
     asyncio.run(get_stock_daily_history(symbol='600000'))

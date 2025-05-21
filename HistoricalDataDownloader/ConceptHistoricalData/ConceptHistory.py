@@ -52,7 +52,7 @@ async def get_concept_daily_history(
         "lmt": "1000000",
         "_": "1626079488673",
     }
-    async with semaphore:
+    async with asyncio.Semaphore(30):
         async with aiohttp.ClientSession() as session:
             r = await session.get(url, params=params)
             data_json = await r.json()
@@ -129,7 +129,7 @@ async def get_concept_current_minute_data(
             "secid": f"90.{symbol}",
             "_": "1687852931312",
         }
-        async with semaphore:
+        async with asyncio.Semaphore(30):
             async with aiohttp.ClientSession() as session:
                 r = await session.get(url, params=params)
                 data_json = await r.json()
@@ -160,6 +160,6 @@ async def get_concept_current_minute_data(
 
 
 if __name__ == '__main__':
-    asyncio.run(get_concept_current_minute_data(symbol='BK1146'))
-    # import akshare as ak
-    # res = ak.stock_board_concept_hist_min_em()
+    # asyncio.run(get_concept_current_minute_data(symbol='BK1146'))
+    import akshare as ak
+    res = ak.stock_board_concept_hist_min_em()

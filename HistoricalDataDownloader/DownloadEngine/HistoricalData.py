@@ -21,7 +21,7 @@ class BaseHistoricalDataDownload():
         try:
             symbol, result = await self._download_api(symbol, start_date, end_date)
         except Exception as e:
-            # print(f"Error downloading: {e}")
+            print(f"Error downloading: {e}")
             return symbol, DownloadError()
         return symbol, result
 
@@ -71,6 +71,11 @@ class IndexDailyHistoricalDataDownload(BaseHistoricalDataDownload):
         super(IndexDailyHistoricalDataDownload, self).__init__(download_api, save_database)
 
 
+class BondYieldDataDownload(BaseHistoricalDataDownload):
+    def __init__(self, download_api, save_database):
+        super(BondYieldDataDownload, self).__init__(download_api, save_database)
+
+
 class StockFundFlowDataDownload(BaseHistoricalDataDownload):
     def __init__(self):
         super(StockFundFlowDataDownload, self).__init__()
@@ -84,6 +89,9 @@ class ConceptFundFlowDataDownload(BaseHistoricalDataDownload):
 class MarketFundFlowDataDownload(BaseHistoricalDataDownload):
     def __init__(self):
         super(MarketFundFlowDataDownload, self).__init__()
+
+
+
 
 
 

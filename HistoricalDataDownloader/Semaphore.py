@@ -1,2 +1,2 @@
 import asyncio
-semaphore = asyncio.Semaphore(30)
+semaphore = asyncio.Semaphore(20)

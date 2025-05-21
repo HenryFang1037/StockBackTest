@@ -3,15 +3,17 @@ from datetime import datetime, timedelta
 from DatabaseTools.MongoDBTools.MongoDBTools import MongoDB
 from HistoricalDataDownloader.ConceptHistoricalData.ConceptConsist import get_concept_cons_history
 from HistoricalDataDownloader.ConceptHistoricalData.ConceptHistory import get_concept_daily_history
-from HistoricalDataDownloader.IndexHistoricalData.IndexList import index_symbols
+from HistoricalDataDownloader.IndexHistoricalData.IndexHistory import get_daily_index_history
 from HistoricalDataDownloader.StockHistoricalData.StockHistory import get_stock_daily_history
+from HistoricalDataDownloader.NationalBondHistoricalData.BondHistory import get_bond_daily_history
 from HistoricalDataDownloader.DownloadEngine.ConsistentsInfo import get_all_consistent
-from HistoricalDataDownloader.DownloadEngine.HistoricalData import StockDailyHistoricalDataDownload, ConceptDailyHistoricalDataDownload, ConceptConsistDailyDataDownload, IndexDailyHistoricalDataDownload
+from HistoricalDataDownloader.DownloadEngine.HistoricalData import (StockDailyHistoricalDataDownload, ConceptDailyHistoricalDataDownload,
+                                                                    ConceptConsistDailyDataDownload, BondYieldDataDownload)
 
 
-async def download_stock_daily_history():
+async def download_stock_daily_history(database_name='沪深A股成分组成', table_name='沪深A股票信息'):
     # 获取沪深A股股票代码
-    stocks = MongoDB(database_name='沪深A股成分组成').find(table_name='沪深A股票信息')
+    stocks = MongoDB(database_name=database_name).find(table_name=table_name)
     end_date = datetime.now().strftime('%Y%m%d')
     stocks['更新日期'] = stocks['更新日期'].apply(
         lambda x: datetime.strptime(x, '%Y%m%d') if type(x) is str else datetime(year=1900, month=1, day=1))
@@ -35,8 +37,8 @@ async def download_stock_daily_history():
     await stock_daily_history_downloader.run(symbols, start_date, end_date, filter_key='日期')
 
 
-async def download_concept_daily_history():
-    concepts = MongoDB(database_name='沪深A股成分组成').find(table_name='沪深A股概念信息')
+async def download_concept_daily_history(database_name='沪深A股成分组成', table_name='沪深A股概念信息'):
+    concepts = MongoDB(database_name=database_name).find(table_name=table_name)
     end_date = datetime.now().strftime('%Y%m%d')
     concepts['更新日期'] = concepts['更新日期'].apply(
         lambda x: datetime.strptime(x, '%Y%m%d') if type(x) is str else datetime(year=1900, month=1, day=1))
@@ -61,8 +63,8 @@ async def download_concept_daily_history():
     await concept_daily_history_downloader.run(symbols, start_date, end_date, filter_key='日期')
 
 
-async def download_concept_consist_daily_history():
-    concepts = MongoDB(database_name='沪深A股成分组成').find(table_name='沪深A股概念信息')
+async def download_concept_consist_daily_history(database_name='沪深A股成分组成', table_name='沪深A股概念信息'):
+    concepts = MongoDB(database_name=database_name).find(table_name=table_name)
     end_date = datetime.now().strftime('%Y%m%d')
     concepts['更新日期'] = concepts['更新日期'].apply(
         lambda x: datetime.strptime(x, '%Y%m%d') if type(x) is str else datetime(year=1900, month=1, day=1))
@@ -88,20 +90,31 @@ async def download_concept_consist_daily_history():
     await concept_consist_history_downloader.run(symbols, start_date, end_date)
 
 
-async def download_index_daily_history():
-    symbols = index_symbols.keys()
+# async def download_index_daily_history():
+#     symbols = index_symbols.keys()
+#     end_date = datetime.now().strftime('%Y%m%d')
+#     index_daily_history_downloader = IndexDailyHistoricalDataDownload(
+#         download_api=get_concept_daily_history,
+#         save_database=MongoDB(database_name='指数日度数据'))
+#     await index_daily_history_downloader.run(symbols, '20241001', end_date, filter_key='日期')
+
+
+async def download_bond_yield_daily_history():
     end_date = datetime.now().strftime('%Y%m%d')
-    index_daily_history_downloader = IndexDailyHistoricalDataDownload(
-        download_api=get_concept_daily_history,
-        save_database=MongoDB(database_name='指数日度数据'))
-    await index_daily_history_downloader.run(symbols, '20231001', end_date, filter_key='日期')
+    bond_yield_history_downloader = BondYieldDataDownload(
+        download_api=get_bond_daily_history,
+        save_database=MongoDB(database_name='债券日度数据')
+    )
+    await bond_yield_history_downloader.run(symbols=['bond'], start_date='20240601', end_date=end_date)
 
 
 async def main_downloader():
-    get_all_consistent()
+    # get_all_consistent()
+    # get_daily_index_history()
     await download_stock_daily_history()
-    await download_concept_daily_history()
-    await download_concept_consist_daily_history()
+    # await download_concept_daily_history()
+    # await download_concept_consist_daily_history()
+    # await download_bond_yield_daily_history()
 
 
 if __name__ == '__main__':
